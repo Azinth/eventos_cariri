@@ -1,8 +1,12 @@
-#!/usr/bin/env bash
+#!/bin/bash
+set -e
 
-echo "Migrando banco de dados..."
-python3 manage.py makemigrations --noinput
-python3 manage.py migrate --noinput
+echo "Instalando dependências..."
+pip install -r requirements.txt
 
 echo "Coletando arquivos estáticos..."
-python3 manage.py collectstatic --noinput
+
+echo "Aplicando migrações..."
+python manage.py makemigrations --noinput
+python manage.py migrate --noinput
+python manage.py collectstatic --noinput
