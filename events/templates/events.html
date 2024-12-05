@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+{% if messages %}
+    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+        {% for message in messages %}
+        <p class="mb-1">{{ message }}</p>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<body class="bg-gray-100 font-sans">
+  <div class="flex">
+    <!-- Sidebar -->
+    <div id="sidebar" class="w-3/4 md:w-1/4 bg-white p-6 shadow-md fixed inset-y-0 left-0 transform -translate-x-full md:transform-none md:relative transition-transform duration-300 z-50 md:block hidden">
+      <h2 class="text-2xl font-bold mb-6">Filtros</h2>
+      <form method="get" action="{% url 'events' %}">
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold mb-2">Categoria</h3>
+          <select class="w-full p-2 border border-gray-300 rounded-lg" name="category">
+            <option value="">Selecione uma Categoria</option>
+            {% for category in categories %}
+            <option value="{{ category }}" {% if category == selected_categories.0 %}selected{% endif %}>{{ category }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold mb-2">Escolha a Data</h3>
+          <div class="bg-gray-100 p-4 rounded-lg">
+            <input type="date" name="start_date" class="w-full p-2 border rounded" value="{{ start_date }}">
+            <input type="date" name="end_date" class="w-full p-2 border rounded mt-2" value="{{ end_date }}">
+          </div>
+        </div>
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold mb-2">Cidade</h3>
+          <select class="w-full p-2 border border-gray-300 rounded-lg" name="location">
+            <option value="">Selecione uma cidade</option>
+            {% for location in locations %}
+            <option value="{{ location }}" {% if location == selected_location %}selected{% endif %}>{{ location }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold mb-2">Faixa de Preço</h3>
+          <div class="flex items-center justify-between mb-2">
+            <input type="number" name="min_price" class="w-1/2 p-2 border rounded" placeholder="Mínimo" min="0" max="9999" value="{{ min_price }}">
+            <input type="number" name="max_price" class="w-1/2 p-2 border rounded" placeholder="Máximo" min="0" max="9999" value="{{ max_price }}">
+          </div>
+        </div>
+        <div class="flex justify-between">
+          <button class="bg-blue-600 text-white py-2 px-4 rounded-lg" type="submit" onclick="toggleSidebar()">Aplicar Filtros</button>
+          <a href="{% url 'events' %}" class="bg-gray-300 text-gray-700 py-2 px-4 rounded-lg" onclick="toggleSidebar()">Limpar Filtros</a>
+        </div>
+      </form>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8">
+      <button id="filter-button" class="bg-blue-600 text-white py-2 px-4 rounded-lg mb-4 md:hidden" onclick="toggleSidebar()">Filtrar</button>
+      {% if events %}
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for event in events %}
+        <div class="bg-white rounded-lg shadow-md overflow-hidden event-card">
+          {% if event.image.exists %}
+          <img src="{{ event.image.first.image.url }}" alt="{{ event.title }}" class="w-full h-48 object-cover event-image">
+          {% else %}
+          <img src="{% static 'eventos_cariri/images/no_photo.png' %}" alt="No Image" class="w-full h-48 object-cover event-image">
+          {% endif %}
+          <div class="p-4">
+            <div class="flex justify-between items-start mb-2">
+              <h3 class="text-xl font-semibold">{{ event.title }}</h3>
+              {% if event.get_average_rating > 0 %}
+              <div class="flex items-center bg-yellow-50 px-2 py-1 rounded">
+                <span class="text-yellow-500 mr-1">
+                      <i class="fas fa-star"></i>
+                </span>
+                <span class="text-sm text-gray-600">({{ event.get_average_rating|floatformat:1 }})</span>
+              </div>
+              {% endif %}
+            </div>
+            <p class="text-gray-600 mb-2">{{ event.date|date:"d \d\e F" }}</p>
+            {% if event.ticket_type == 'gratuito' %}
+            <i class="fas fa-money-bill-wave text-green-500"> {{ event.ticket_type }} </i>
+            {% else %}
+            <i class="fas fa-money-bill-wave text-blue-500"> {{ event.ticket_type }} | R$ {{ event.price}} </i>
+            {% endif %}
+            <p class="text-gray-600 mb-2">{{ event.location.city }}, {{ event.location.state }}</p>
+            <p class="text-gray-700 mb-4">{{ event.description|truncatewords:20 }}</p>
+            <div class="flex flex-wrap gap-2">
+              <a href="{% url 'event_detail' event.pk %}" class="bg-blue-600 text-white py-2 px-4 rounded-lg">Saiba Mais</a>
+              {% if user.is_superuser or user == event.creator %}
+              <a href="{% url 'event_delete' event.pk %}" class="bg-red-600 text-white py-2 px-6 rounded-lg" onclick="return confirmAction('deletar')">Excluir</a>
+              {% endif %}
+              {% if user == event.creator %}
+              <a href="{% url 'event_update' event.pk %}" class="bg-blue-950 text-white px-4 py-2 rounded-lg">Editar</a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="flex justify-center mt-6">
+        {% if is_paginated %}
+        <div class="pagination">
+          <span class="page-links">
+            {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo; first</a>
+            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+            {% endif %}
+            <span class="current">
+              Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+            </span>
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+            {% endif %}
+          </span>
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="bg-white p-6 rounded-lg shadow-md text-center">
+        <h3 class="text-xl font-semibold mb-2">Nenhum resultado para "{{ query }}"</h3>
+        <p class="text-gray-600">Tente ajustar os filtros para encontrar eventos.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</body>
+<script>
+  function confirmAction(action) {
+    let message = '';
+    if (action === 'deletar') {
+        message = 'Tem certeza que quer deletar esse evento?';
+    }
+    return confirm(message);
+}
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.toggle('-translate-x-full');
+  sidebar.classList.toggle('hidden');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const priceRangeInput = document.getElementById('price-range-input');
+  const priceRangeValue = document.getElementById('price-range-value');
+
+  function updatePriceRangeValue() {
+    priceRangeValue.textContent = `R$${priceRangeInput.value}`;
+  }
+
+  priceRangeInput.addEventListener('input', updatePriceRangeValue);
+
+  // Inicializa o valor exibido
+  updatePriceRangeValue();
+});
+</script>
+
+{% endblock %}

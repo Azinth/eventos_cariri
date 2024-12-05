@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-w+8x$b*=i)8*(b8a95hszecr&qn_+mi$&sx#+5!+-$*z9o(e64
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -59,7 +59,7 @@ ROOT_URLCONF = 'eventos_cariri.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': ['eventos_cariri/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -71,6 +71,23 @@ TEMPLATES = [
         },
     },
 ]
+
+# settings.py
+
+# Diretório onde os arquivos estáticos serão coletados
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# URL para acessar os arquivos estáticos
+STATIC_URL = '/static/'
+
+# Diretórios adicionais para buscar arquivos estáticos
+STATICFILES_DIRS = [
+    BASE_DIR / 'eventos_cariri/static',
+]
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 
 WSGI_APPLICATION = 'eventos_cariri.wsgi.application'
 
@@ -86,8 +103,25 @@ DATABASES = {
 }
 
 
+# Para email na página sobre
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'seu-email@gmail.com'
+# EMAIL_HOST_PASSWORD = 'sua-senha'
+# DEFAULT_FROM_EMAIL = 'seu-email@gmail.com'
+
+
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
+
+
+AUTH_USER_MODEL = 'users.User'  # Modelo de usuário customizado
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # Backend padrão
+]
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -110,7 +144,13 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+USE_I18N = True
+
+LOCALE_PATHS = [
+    BASE_DIR / 'locale',
+]
+
+TIME_ZONE = 'America/Fortaleza'
 
 USE_I18N = True
 

@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block content %}
+
+
+<!-- Hero Section -->
+<section class="relative bg-cover bg-center h-96 flex items-center justify-center" style="background-image: url('{% static "eventos_cariri/images/background_home_image.png" %}');">
+    {% if messages %}
+  <div id="message-container" class="fixed top-20 right-30  p-1 rounded-lg shadow-lg">
+    {% for message in messages %}
+      <div class="alert-success">
+        {{ message }}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+    <div class="absolute inset-0 bg-black opacity-40"></div>
+    <div class="container mx-auto px-10 py-20 text-center relative z-10">
+        <h1 class="text-4xl text-white font-bold">
+            Descubra Eventos em Cariri
+        </h1>
+        <p class="text-white mt-10">
+            
+        </p>
+        <a href="{% url 'events' %}" class="mt-2 px-10 py-2 bg-green-600 text-white font-semibold rounded overflow-hidden transform transition-transform duration-300 hover:scale-105">
+            Explorar Eventos
+                </a>
+    
+    </div>
+</section>
+
+<!-- Wrapper Section -->
+<section class="mx-auto px-10">
+
+    <!-- Event Categories -->
+    <section class="container mx-auto px-4 py-8">
+        <h2 class="text-2xl font-bold mb-4">
+            Categorias de Eventos
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 overflow-x-auto">
+            <a href="{% url 'events' %}?category=Cultura" class="bg-white p-4 rounded shadow text-center">
+                <i class="fas fa-palette text-purple-500 text-3xl mb-2"></i>
+                <p class="font-semibold">Cultura</p>
+            </a>
+            <a href="{% url 'events' %}?category=Esporte" class="bg-white p-4 rounded shadow text-center">
+                <i class="fas fa-futbol text-blue-500 text-3xl mb-2"></i>
+                <p class="font-semibold">Esportes</p>
+            </a>
+            <a href="{% url 'events' %}?category=Educacional" class="bg-white p-4 rounded shadow text-center">
+                <i class="fas fa-book text-green-500 text-3xl mb-2"></i>
+                <p class="font-semibold">Educacional</p>
+            </a>
+            <a href="{% url 'events' %}?category=Literatura" class="bg-white p-4 rounded shadow text-center">
+                <i class="fas fa-coffee text-yellow-500 text-3xl mb-2"></i>
+                <p class="font-semibold">Literatura</p>
+            </a>
+        </div>
+    </section>
+
+    <!-- Create Event Button -->
+    <section class="text-center py-8">
+        <a href="{% url 'event_create' %}" class="px-6 py-2 bg-blue-500 text-white font-semibold rounded">
+            Crie seu Evento
+        </a>
+    </section>
+
+<!-- Upcoming Events -->
+<section class="container mx-auto px-4 py-8">
+    <h2 class="text-2xl font-bold mb-4">
+        Eventos Próximos
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-x-auto">
+        {% for event in upcoming_events %}
+        <div class="bg-gray-100 p-4 rounded-lg" onclick="window.location.href='{% url 'event_detail' event.id %}'">
+            {% if event.image.exists %}
+            <img
+                src="{{ event.image.first.image.url }}"
+                alt="{{ event.title }}"
+                class="w-full h-48 object-cover rounded-lg mb-2"
+                height="200"
+                width="300"
+            />
+            {% else %}
+            <img
+                src="{% static 'eventos_cariri/images/no_photo.png' %}"
+                alt="No Image"
+                class="w-full h-48 object-cover rounded-lg mb-2"
+                height="200"
+                width="300"
+            />
+            {% endif %}
+            <div class="mt-4">
+                <span class="bg-purple-500 text-white text-xs px-2 py-1 rounded">Em breve</span>
+                <h3 class="text-xl font-bold mt-2">{{ event.title }}</h3>
+                <p class="text-gray-600 mt-1"><i class="fas fa-calendar-alt"></i> {{ event.date|date:"F" }}</p>
+                <p class="text-gray-600"><i class="fas fa-map-marker-alt"></i> {{ event.location }}</p>
+                <p class="text-gray-700 mt-2 event-description">{{ event.description }}</p>
+                <button class="mt-4 px-4 py-2 bg-blue-500 text-white font-semibold rounded">Leia mais</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="text-center mt-8">
+        <button class="px-6 py-2 bg-blue-500 text-white font-semibold rounded">Veja todos os Eventos</button>
+    </div>
+</section>
+
+        <!-- Testimonials -->
+        <section class="container mx-auto px-4 py-8">
+            <h2 class="text-2xl font-bold mb-4 text-center">O que os nossos usuários estão comentando</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {% for comment in recent_comments %}
+                <div class="bg-white p-4 rounded shadow">
+                    <div class="flex items-center">
+                        {% if comment.author.profile_picture %}
+                            
+                        <img alt="User Image" class="h-12 w-12 rounded-full" src="{{ comment.author.profile_picture.url }}"/>
+                        {% else %}
+                        <img alt="User Image" class="h-12 w-12 rounded-full" src="{% static 'eventos_cariri/images/no_profile_picture.png' %}"/>
+                        {% endif %}
+                        <div class="ml-4">
+                            <p class="font-semibold">{{ comment.author.username }}</p>
+                            <p class="text-gray-600">{{ comment.created_at|date:"d/m/Y H:i" }}</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-700 mt-4">"{{ comment.comment }}"</p>
+                    <p class="text-gray-500 mt-2">Evento: <a href="{% url 'event_detail' comment.event.id %}" class="text-blue-500">{{ comment.event.title }}</a></p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+    <!-- About Section -->
+    <section class="container mx-auto px-4 py-8">
+        <h2 class="text-2xl font-bold mb-4 text-center">Sobre o Cariri</h2>
+        <p class="text-gray-700 text-center">
+            O Cariri é uma região do Ceará, localizada no sul do estado. Conhecida por sua cultura rica e diversa, o Cariri é um local de festas tradicionais, eventos culturais, e muito mais. Descubra o que a região tem a oferecer!
+        </p>
+    </section>
+
+</section>
+
+<style>
+    .event-description {
+        display: -webkit-box;
+        -webkit-line-clamp: 3; /* Número máximo de linhas */
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const messageContainer = document.getElementById('message-container');
+      if (messageContainer) {
+        setTimeout(() => {
+          messageContainer.style.display = 'none';
+        }, 5000); // 5000 milissegundos = 5 segundos
+      }
+    });
+  </script>
+
+{% endblock content %}

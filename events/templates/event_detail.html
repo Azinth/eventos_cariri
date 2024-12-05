@@ -1,0 +1,431 @@
+{% extends 'base.html' %} {% load static %} {% block content %}
+<body class="bg-gray-100 text-gray-800">
+  <div class="max-w-5xl mx-auto p-4">
+    <!-- Header Section -->
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+      {% if event.image.exists %}
+      <img
+        src="{{ event.image.first.image.url }}"
+        alt="{{ event.title }}"
+        class="w-full h-64 object-cover"
+      />
+      {% else %}
+      <img
+        src="{% static 'eventos_cariri/images/no_photo.png' %}"
+        alt="No Image"
+        class="w-full h-64 object-cover"
+      />
+      {% endif %}
+      <div class="p-6">
+        <h1 class="text-3xl font-bold">{{ event.title }}</h1>
+        <div class="flex items-center text-gray-500 mt-2">
+          <i class="fas fa-calendar-alt mr-2"></i>
+          <span>{{ event.date|date:"d \d\e F, Y" }}</span>
+          <i class="fas fa-clock ml-4 mr-2"></i>
+          <span>{{ event.time|time:"H:i" }}</span>
+          <i class="fas fa-map-marker-alt ml-4 mr-2"></i>
+          <span>{{ event.location.city }}, {{ event.location.state }}</span>
+          <i class="fas fa-tag ml-4 mr-2"></i>
+          <span>{{ event.category }}</span>
+          <i class="fas fa-ticket-alt ml-4 mr-2"></i>
+          <span>{{ event.ticket_type }}</span>
+          {% if event.price %}
+          <i class="fas fa-dollar-sign ml-4 mr-2"></i>
+          <span>R${{ event.price }}</span>
+          {% endif %}
+          <i class="fas fa-users ml-4 mr-2"></i>
+          <span>{{ event.age_group }}</span>
+          <i class="fas fa-star ml-4 mr-2"></i>
+          <span>{{ event.get_average_rating }}/5</span>
+        </div>
+        <div class="mt-4">
+          <button class="bg-blue-600 text-white px-4 py-2 rounded-lg" onclick="comprarIngresso()">
+            Comprar Ingresso
+          </button>
+          {% if user.is_superuser or user == event.creator %}
+          <a href="{% url 'event_delete' event.pk %}" class="bg-red-600 text-white px-4 py-2 rounded-lg" onclick="return confirmAction('deletar')">Excluir</a>
+          {% endif %}
+          {% if user == event.creator %}
+          <a href="{% url 'event_update' event.pk %}" class="bg-blue-950 text-white px-4 py-2 rounded-lg"> Editar </a>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+    <!-- About the Event Section -->
+    <div class="bg-white shadow-md rounded-lg overflow-hidden mt-6 p-6">
+      <h2 class="text-2xl font-bold mb-4">Sobre o evento</h2>
+
+      <p class="mb-4">{{ event.description }}</p>
+    </div>
+    <!-- Organizer Section -->
+    <div class="bg-white shadow-md rounded-lg overflow-hidden mt-6 p-6 flex items-center">
+      {% if event.creator.profile_picture %}
+      <a href="{% url 'user_profile' event.creator.username %}">
+      <img
+        src="{{ event.creator.profile_picture.url }}"
+        alt="Organizer's profile picture"
+        class="w-24 h-24 rounded-full mr-6"
+      />
+      </a>
+      {% else %}
+      <a href="{% url 'user_profile' event.creator.username %}">
+
+      <img
+        src="{% static 'eventos_cariri/images/no_profile_picture.png' %}"
+        alt="No Image"
+        class="w-24 h-24 rounded-full mr-6"
+      />
+      </a>
+      {% endif %}
+      <div>
+        <a href="{% url 'user_profile' event.creator.username %}">
+
+        <h3 class="text-xl font-bold">{{ event.creator.username }}</h3>
+        <p>entrou em: {{ event.created_at|date:"d/m/Y" }}</p>
+        </a>
+        {% if event.creator.description %}
+        <p class="text-gray-600 mb-4">
+          {{ event.creator.description }}
+        </p>
+        {% else %}
+        <p class="text-gray-600 mb-4">
+          Esse usuário ainda não escreveu sobre ele.
+        </p>
+        {% endif %}
+        <button class="bg-blue-600 text-white px-4 py-2 rounded-lg">
+          Fale com o organizador
+        </button>
+      </div>
+    </div>
+    <!-- Event Location Section -->
+    <div class="bg-white shadow-md rounded-lg overflow-hidden mt-6 p-6">
+      <h2 class="text-2xl font-bold mb-4">Local do Evento</h2>
+      <i class="fas fa-map-marker-alt"></i>
+      <span>{{ event.location.street }}, {{ event.location.number }} - {{ event.location.neighborhood }}, {{ event.location.city }}</span>
+      <div id="event-map" class="w-full h-64 rounded-lg"></div>
+      <div class="flex justify-center mt-4">
+        <button class="bg-blue-600 text-white px-4 py-2 rounded-lg" onclick="openGoogleMaps()">
+          Ver no Google Maps
+        </button>
+      </div>
+
+      <!-- Leaflet.js CSS and JS -->
+      <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet/dist/leaflet.css"
+      />
+      <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+      <script>
+        // Initialize the map and set its view to the event's location coordinates
+        var map = L.map('event-map').setView([{{ event.location.latitude }}, {{ event.location.longitude }}], 13);
+
+        // Set up the OSM tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Add a marker at the event location
+        L.marker([{{ event.location.latitude }}, {{ event.location.longitude }}]).addTo(map)
+            .bindPopup("{{ event.title }}")
+            .openPopup();
+      </script>
+    </div>
+    <!-- Similar Events Section -->
+    <div class="bg-white shadow-md rounded-lg overflow-hidden mt-6 p-6">
+      <h2 class="text-2xl font-bold mb-4">Eventos Similares</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {% for similar_event in similar_events %}
+          {% if similar_event %}
+            
+          <div class="bg-gray-100 p-4 rounded-lg" onclick="window.location.href='{% url 'event_detail' similar_event.id %}'">
+            {% if similar_event.image.exists %}
+            <img
+              src="{{ similar_event.image.first.image.url }}"
+              alt="{{ similar_event.title }}"
+              class="w-full h-32 object-cover rounded-lg mb-2"
+            />
+            {% else %}
+            <img
+              src="{% static 'eventos_cariri/images/no_photo.png' %}"
+              alt="No Image"
+              class="w-full h-32 object-cover rounded-lg mb-2"
+            />
+            {% endif %}
+            <h3 class="text-lg font-semibold">{{ similar_event.title }}</h3>
+            <p class="text-gray-600">
+              {{ similar_event.date|date:"d \d\e F, Y" }}
+            </p>
+            <p class="text-gray-600">
+              {{ similar_event.location.city }}
+            </p>
+          </div>
+          {% else %}
+          <div class="bg-gray-100 p-4 rounded-lg">
+            <h3 class="text-lg font-semibold">No similar events found</h3>
+          </div>
+          {% endif %}
+          
+          {% endfor %}
+        </div>
+    </div>
+<!-- Share This Event Section -->
+<div class="bg-white shadow-md rounded-lg overflow-hidden mt-6 p-6 text-center">
+    <h2 class="text-2xl font-bold mb-4">Compartilhe esse evento</h2>
+    <div class="flex justify-center space-x-4">
+        <!-- Facebook Share -->
+        <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri }}" 
+           target="_blank" 
+           class="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
+            <i class="fab fa-facebook-f mr-2"></i> Facebook
+        </a>
+
+        <!-- X (formerly Twitter) Share -->
+        <a href="https://x.com/intent/tweet?text=Olha esse evento: {{ event.title }}&url={{ request.build_absolute_uri }}" 
+           target="_blank" 
+           class="bg-blue-400 text-white px-4 py-2 rounded-lg flex items-center">
+            <i class="fab fa-twitter mr-2"></i> X
+        </a>
+
+        <!-- WhatsApp Share -->
+        <a href="https://api.whatsapp.com/send?text=Olha esse evento: {{ event.title }} - {{ request.build_absolute_uri }}" 
+           target="_blank" 
+           class="bg-green-500 text-white px-4 py-2 rounded-lg flex items-center">
+            <i class="fab fa-whatsapp mr-2"></i> Whatsapp
+        </a>
+
+        <!-- Instagram Share (Link to Instagram) -->
+        <a href="https://www.instagram.com/" 
+           target="_blank" 
+           class="bg-pink-500 text-white px-4 py-2 rounded-lg flex items-center">
+            <i class="fab fa-instagram mr-2"></i> Instagram
+        </a>
+
+        <!-- Copy Link Button -->
+        <button 
+           onclick="copyToClipboard(' Olha esse evento: {{ event.title }} - {{ request.build_absolute_uri }}')" 
+           class="bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center">
+            <i class="fas fa-link mr-2"></i> Copiar
+        </button>
+        </div>
+    </div>
+<!-- Comments and Ratings Section -->
+<div class="bg-white shadow-md rounded-lg overflow-hidden mt-6 p-6">
+  <h2 class="text-2xl font-bold mb-4">Comentários e Avaliações</h2>
+    <!-- Event Rating -->
+<p class="text-lg font-semibold">Nota Média: {{ event.get_average_rating }}/5</p>
+
+  <!-- Formulário de Avaliação -->
+  <div class="bg-gray-100 p-4 rounded-lg mt-4">
+    <h4 class="text-lg font-semibold">Deixe sua avaliação:</h4>
+    {% if user_review %}
+        <p>Você já avaliou este evento. Sua avaliação:</p>
+        <div class="flex items-center mb-2">
+            <div class="stars-container">
+                {% for i in "12345" %}
+                    {% if i|add:"0" <= user_review.rating %}
+                        <i class="fas fa-star text-yellow-500"></i>
+                    {% else %}
+                        <i class="far fa-star text-yellow-500"></i>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% if user == user_review.user %}
+                <a href="{% url 'review_delete' user_review.pk %}" class="ml-2 text-red-600" 
+                   onclick="return confirm('Tem certeza que deseja excluir esta avaliação?')">
+                    <i class="fas fa-trash"></i> Excluir
+                </a>
+            {% endif %}
+        </div>
+        <p>{{ user_review.comment }}</p>
+    {% else %}
+        <form method="post">
+            {% csrf_token %}
+            <div class="stars-container mb-4">
+                <i class="far fa-star text-yellow-500 cursor-pointer star-rating" data-value="1"></i>
+                <i class="far fa-star text-yellow-500 cursor-pointer star-rating" data-value="2"></i>
+                <i class="far fa-star text-yellow-500 cursor-pointer star-rating" data-value="3"></i>
+                <i class="far fa-star text-yellow-500 cursor-pointer star-rating" data-value="4"></i>
+                <i class="far fa-star text-yellow-500 cursor-pointer star-rating" data-value="5"></i>
+            </div>
+            {{ review_form.rating }}
+            {{ review_form.comment }}
+            <button type="submit" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg">
+                Adicionar Avaliação
+            </button>
+        </form>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const stars = document.querySelectorAll('.star-rating');
+                const ratingInput = document.getElementById('rating-input');
+
+                function updateStars(rating) {
+                    stars.forEach((star, index) => {
+                        if (index < rating) {
+                            star.classList.remove('far');
+                            star.classList.add('fas');
+                        } else {
+                            star.classList.remove('fas');
+                            star.classList.add('far');
+                        }
+                    });
+                }
+
+                stars.forEach(star => {
+                    star.addEventListener('mouseover', function() {
+                        const rating = this.getAttribute('data-value');
+                        updateStars(rating);
+                    });
+
+                    star.addEventListener('mouseout', function() {
+                        const currentRating = ratingInput.value || 0;
+                        updateStars(currentRating);
+                    });
+
+                    star.addEventListener('click', function() {
+                        const rating = this.getAttribute('data-value');
+                        ratingInput.value = rating;
+                        updateStars(rating);
+                    });
+                });
+            });
+        </script>
+    {% endif %}
+</div>
+
+  <!-- Avaliações -->
+  <div class="space-y-4">
+      {% if reviews %}
+      {% for review in reviews %}
+      <div class="bg-gray-100 p-4 rounded-lg">
+          <div class="flex items-center mb-2">
+              <p class="text-yellow-500">
+                  {% for i in "12345" %}
+                      {% if i|add:0 <= review.rating %}
+                          ★
+                      {% else %}
+                          ☆
+                      {% endif %}
+                  {% endfor %}
+              </p>
+          </div>
+          <p class="text-gray-600">{{ review.comment }}</p>
+          <p class="text-gray-600">{{ review.created_at|date:"d/m/Y H:i" }}</p>
+      </div>
+      {% endfor %}
+      {% else %}
+      <p class="text-gray-600">Nenhuma avaliação disponível.</p>
+      {% endif %}
+  </div>
+
+  <!-- Comentários -->
+  <div class="space-y-4 mt-6">
+      <h3 class="text-lg font-semibold">Comentários</h3>
+      {% if comments %}
+      {% for comment in comments %}
+      <div class="bg-gray-100 p-4 rounded-lg">
+          <div class="flex items-center mb-2">
+              {% if comment.author.profile_picture %}
+              <a href="{% url 'user_profile' comment.author.username %}">
+                  <img src="{{ comment.author.profile_picture.url }}" alt="Profile picture of {{ comment.author.username }}" class="w-12 h-12 rounded-full mr-4" />
+              </a>
+              {% else %}
+              <a href="{% url 'user_profile' comment.author.username %}">
+                  <img src="{% static 'eventos_cariri/images/no_profile_picture.png' %}" alt="No Image" class="w-12 h-12 rounded-full mr-4" />
+              </a>
+              {% endif %}
+              <a href="{% url 'user_profile' comment.author.username %}">
+                  <h3 class="text-lg font-semibold">{{ comment.author.username }}:</h3>
+              </a>
+          </div>
+          <p class="text-gray-600">{{ comment.comment }}</p>
+          <p class="text-gray-600">{{ comment.created_at|date:"d/m/Y H:i" }}</p>
+      </div>
+      {% endfor %}
+      {% else %}
+      <p class="text-gray-600">Nenhum comentário disponível.</p>
+      {% endif %}
+  </div>
+
+
+  <!-- Formulário de Comentário -->
+  <div class="bg-gray-100 p-4 rounded-lg mt-4">
+    <h4 class="text-lg font-semibold">Deixe seu comentário:</h4>
+    {% if user.is_authenticated %}
+        <form method="post" action="{% url 'event_detail' event.pk %}">
+            {% csrf_token %}
+            {{ comment_form.as_p }}
+            <div>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg">
+                    Adicionar Comentário
+                </button>
+            </div>
+        </form>
+    {% else %}
+        <p class="text-gray-600">
+            <a href="{% url 'login' %}" class="text-blue-600">Faça login</a> para deixar um comentário.
+        </p>
+    {% endif %}
+</div>
+
+</div>
+    <div id="captcha-icon" class="fixed bottom-10 right-10 bg-gray-100 p-4 rounded-full shadow-lg cursor-pointer">
+      <img src="{% static 'eventos_cariri/images/recaptcha-icon.png' %}" alt="reCAPTCHA Icon" class="w-10 h-10">
+    </div>
+  </div>
+  </div>
+</body>
+
+<script>
+  const starRatings = document.querySelectorAll('.star-rating');
+  starRatings.forEach(starRating => {
+      const stars = starRating.children;
+      let rating = 0;
+
+      stars.forEach(star => {
+          star.addEventListener('click', () => {
+              rating = parseFloat(star.getAttribute('data-value'));
+              document.getElementById('rating').value = rating;
+              updateStars(stars, rating);
+          });
+      });
+
+      document.getElementById('submit-review').addEventListener('click', () => {
+          // Enviar a avaliação para o servidor
+          const reviewComment = document.getElementById('review-comment').value;
+          const ratingValue = document.getElementById('rating').value;
+          // Implemente a lógica para enviar a avaliação para o servidor
+      });
+  });
+
+  function updateStars(stars, rating) {
+      stars.forEach(star => {
+          if (parseFloat(star.getAttribute('data-value')) <= rating) {
+              star.innerHTML = '&#9733;';
+          } else {
+              star.innerHTML = '&#9734;';
+          }
+      });
+  }
+  function openGoogleMaps() {
+    var latitude = {{ event.location.latitude }};
+    var longitude = {{ event.location.longitude }};
+    var url = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    window.open(url, '_blank');
+  }
+    function comprarIngresso(event){
+        alert("Em breve você poderá comprar o ingresso clicando nesse botão!")
+        event.preventDefault();
+    }
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            alert('link copiado para a área de transferência! ✅');
+        }, function(err) {
+            console.error('Async: não foi possível copiar o link: ', err);
+        });
+    }
+</script>
+{% endblock %}

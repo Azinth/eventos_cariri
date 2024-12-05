@@ -1,22 +1,22 @@
-"""
-URL configuration for eventos_cariri project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from users.views import login_view, logout_view, register_view, profile_view, user_profile_view
+from events.views import HomeView, AboutView, contact_view
+from django.conf import settings
+from django.conf.urls.static import static
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-]
+    path('profile/', profile_view, name='profile'),
+    path('profile/<str:username>/', user_profile_view, name='user_profile'),
+    path('login/', login_view, name='login'),
+    path('register/', register_view, name='register'),
+    path('logout/', logout_view, name='logout'),
+    path('events/', include('events.urls')),
+    path('comments/', include('comments.urls')),
+    path('reviews/', include('reviews.urls')),
+    path('sobre/', AboutView.as_view(), name='about'),
+    path('contact/', contact_view, name='contact'),
+    path('', HomeView.as_view(), name='home'),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
